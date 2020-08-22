@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Oct 30 12:19:35 2019
-
-@author: Abdelhamid bouzid
-"""
 import torch
 
 import create_model
