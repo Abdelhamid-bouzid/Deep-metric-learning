@@ -1,12 +1,12 @@
 """
 Created on Sun Nov 17 15:19:44 2019
 
-@author: Fadoua Khmaissia
+@author: Abdelhamid Bouzid
 """
 
 import numpy as np
 import os
-d
+
 Facnet_config = {
     "step_size" : 9,
     "Epochs" : 1000, 
