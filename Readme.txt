@@ -4,6 +4,8 @@ Deep metric learning folder contains the code for three Deep metrci learning app
 - DML: based on magnet loss.
 - DML: based on Von Mises-fisher distribution loss.
 
+- A combination between magnet adn vmf.
+
 ########################### package ######################
 - we used pytorch framework 
 
