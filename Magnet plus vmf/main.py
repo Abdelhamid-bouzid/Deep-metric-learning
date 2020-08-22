@@ -2,7 +2,7 @@
 """
 Created on Wed Oct 30 12:19:35 2019
 
-@author: Fadoua Khmaissia
+@author: Abdelhamid bouzid
 """
 import torch
 import sys
@@ -15,13 +15,7 @@ import argparse, math, time, json, os
 import os
 from PIL import Image, ImageOps
 from matplotlib.pyplot import imshow
-from lib import arf, preprocess
-from lib.preprocess import *
-from config import config
-from prep_cnn_data import prepare_data, gen_CNN_test_data
-#from prep_yolo_data import prepare_data_YOLO, gen_yolo_test_data
-import cv2 
-#from train import train,plot_confusion_matrix,test
+
 
 import create_model
 from learning_function import learning_function
