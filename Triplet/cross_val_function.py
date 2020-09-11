@@ -33,10 +33,10 @@ def cross_val_function(epoch,model,device,triplet_label,anch_inds,pos_inds,neg_i
         if m==max_batch:
             break
         
-        X_train, X_test = images_train[anch_inds[train_index]], images_train[anch_inds[test_index]]
-        y_train, y_test = triplet_label[train_index], triplet_label[test_index]
-        X_pos = images_train[pos_inds[test_index].astype(int)]
-        X_neg = images_train[neg_inds[test_index].astype(int)]
+        X_test = images_train[anch_inds[test_index]]
+        y_test = triplet_label[test_index]
+        X_pos  = images_train[pos_inds[test_index].astype(int)]
+        X_neg  = images_train[neg_inds[test_index].astype(int)]
         
         anchor1      = torch.from_numpy(X_test).to(device=device, dtype=torch.float)
         positive1    = torch.from_numpy(X_pos).to(device=device, dtype=torch.float)
