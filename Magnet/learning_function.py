@@ -56,11 +56,9 @@ def learning_function(model,optimizer,device,images_train, labels_train,images_t
             output  = model(targets)
             loss   = loss_function(alpha).forward(output, batch_label,chosen_clusters,device).to(device)
             
-            model.eval()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            model.eval()
 
         
         '''######################################################## Forwad the data  ########################################################################'''
