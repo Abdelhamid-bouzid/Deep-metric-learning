@@ -58,6 +58,7 @@ def learning_function(model,optimizer,device,images_train, labels_train,images_t
         
         m = 0
         ll = 0
+        model.train()
         for s in list_inds:
             if s+batch_size<images_train.shape[0]:
                 targets = images_train_1[s:s+batch_size]
@@ -68,8 +69,7 @@ def learning_function(model,optimizer,device,images_train, labels_train,images_t
             targets    = torch.from_numpy(targets).to(device=device, dtype=torch.float)
             labels     = torch.from_numpy(labels).to(device=device, dtype=torch.float)
             mean_dir1  = torch.from_numpy(mean_dir).to(device=device, dtype=torch.float)
-            
-            model.train()
+           
             output  = model(targets)
             loss   = loss_function(Con).forward(output, labels, torch.t(mean_dir1),device).to(device)
             
@@ -79,7 +79,6 @@ def learning_function(model,optimizer,device,images_train, labels_train,images_t
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            model.eval()
             #print("   ######### iteration percentage: {:0.4f} loss: {:0.8f}  ".format((m/len(list_inds))*100,loss.item()))
             ll = ll + loss.item()
             m = m+1
