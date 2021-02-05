@@ -4,7 +4,7 @@ Application of deep metric learning based on Von Mises-fisher distribution loss.
 - we used pytorch framework 
 
 ########################### Papers #######################
-- VMF:     https://arxiv.org/abs/1802.09662
+- Triplet:     https://arxiv.org/abs/1802.09662
 
 ########################### Paramteres: Config file #######################
 Facnet_config = {
