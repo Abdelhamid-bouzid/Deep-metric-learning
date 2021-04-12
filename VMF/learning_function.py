@@ -1,123 +1,107 @@
-from mean_dicrections import mean_dicrections
 from forward_all_images import forward_all_images
 from prediction import prediction
 from loss_function import loss_function
-from test_model import test_model
+from RandomSampler import RandomSampler
+from torch.utils.data import DataLoader
+from mean_dicrections import mean_dicrections
 
+from cluster_training import cluster_training
 import torch
-import numpy as np
-import scipy.io as sio
-from config import Facnet_config
+from config import config
 
-def learning_function(model,optimizer,device,images_train, labels_train,images_test,labels_test):
+def learning_function(model,l_train,test):
     
     
     ''' #################################################  initialization  ################################################### '''
-    Epochs              = Facnet_config['Epochs']
-    batch_size          = Facnet_config['batch_size']
-    Con                 = Facnet_config['Con']
+    
+    optimizer     = torch.optim.Adam(model.parameters(),lr = config['learning_rate'])
+    device        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-    train_acc, test_acc, Loss_fn = [], [], []
+    train_acc, test_acc = [], []
     
     ''' #################################################  test the initial model  ################################################### '''
-    train_features = forward_all_images(model,device,images_train)
-    test_features  = forward_all_images(model,device,images_test)
+    model     = model.to(device=device, dtype=torch.float)
+    model.eval()
+    train_features,train_labels = forward_all_images(model,l_train)
+    test_features,test_labels   = forward_all_images(model,test)
     
-    mean_dir,_,_       = mean_dicrections(train_features,labels_train)
+    mean_dir                    = mean_dicrections(train_features,train_labels)
     
-    _,train_acc_1  = prediction(train_features,labels_train,mean_dir)
-    _,test_acc_1   = prediction(test_features,labels_test,mean_dir)
-    
-# =============================================================================
-#     _,train_acc_2  = test_model(train_features, labels_train,train_features,labels_train)
-#     _,test_acc_2   = test_model(train_features, labels_train,test_features,labels_test) 
-# =============================================================================
+    _,train_acc_1  = prediction(train_features,train_labels,mean_dir)
+    _,test_acc_1   = prediction(test_features,test_labels,mean_dir)
     
     train_acc.append(train_acc_1)
     test_acc.append(test_acc_1)
     
-    torch.save(model.state_dict(), r'models\model'+str(0)+'.pth')
-    #print("   #######################  Train Epoch: {} train_acc: {:0.4f} val_acc: {:0.4f} test_acc: {:0.4f} ###################       ".format(0,train_acc[-1],val_acc[-1],test_acc[-1]))
     print("######################################################################################################################")
     print("   #####  Cosine: Train Epoch: {} train_acc: {:0.4f} test_acc: {:0.4f} #####".format(0,train_acc_1,test_acc_1))
-    #print("   #####  KNN: Train Epoch: {} train_acc: {:0.4f} val_acc: {:0.4f} test_acc: {:0.4f}  #####".format(0,train_acc_2,val_acc_2,test_acc_2))
     print("######################################################################################################################")
-          
+    
+    ''' #################################################  Dtat loaders  ################################################### '''
+    train_sampler=RandomSampler(len(l_train), config["iteration"] * config["batch_size"])
+    l_loader = DataLoader(l_train, config["batch_size"],drop_last=True,sampler=train_sampler)
+      
           
     ''' #################################################### block for learning  ########################################################## '''      
-    for i in range(1,Epochs+1):
+    best_acc  = 0
+    iteration = 0
+    for l_input, l_target in l_loader:
+        iteration += 1
         
-        '''##################################################### Learning ################################################################################'''
-        arr = np.arange(images_train.shape[0])
-        np.random.shuffle(arr)
+        l_input, l_target = l_input.to(device).float(), l_target.to(device).long()
         
-        images_train_1 = images_train[arr]
-        labels_train_1 = labels_train[arr]
+        outputs = model(l_input)
         
-        list_inds  = [s for s in range(0,images_train.shape[0],batch_size)]
+        mean_dir1  = torch.from_numpy(mean_dir).to(device=device, dtype=torch.float)
+        loss = loss_function(config["Con"]).forward(outputs, l_target, torch.t(mean_dir1),device)
+
         
-        m = 0
-        ll = 0
-        model.train()
-        for s in list_inds:
-            if s+batch_size<images_train.shape[0]:
-                targets = images_train_1[s:s+batch_size]
-                labels  = labels_train_1[s:s+batch_size]
-            else:
-                targets = images_train_1[s:]
-                labels  = labels_train_1[s:]
-            targets    = torch.from_numpy(targets).to(device=device, dtype=torch.float)
-            labels     = torch.from_numpy(labels).to(device=device, dtype=torch.float)
-            mean_dir1  = torch.from_numpy(mean_dir).to(device=device, dtype=torch.float)
-           
-            output  = model(targets)
-            loss   = loss_function(Con).forward(output, labels, torch.t(mean_dir1),device).to(device)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        
+        #print('##########################################################################################################')
+        #print("   #####  Train iteration: {} train_loss: {:0.4f} ".format(iteration,loss.item()))
+        #print('##########################################################################################################')
+        
+        if iteration == config["lr_decay_iter"]:
+            optimizer.param_groups[0]["lr"] *= config["lr_decay_factor"]
+        
+        if iteration%config["mean_dir_cycle"]==0:
+            model     = model.to(device=device, dtype=torch.float)
+            train_features,train_labels = forward_all_images(model,l_train)
+            mean_dir                    = mean_dicrections(train_features,train_labels)
+            model.train()
             
-            if loss.item()==0:
-                model.eval()
-                break;
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            #print("   ######### iteration percentage: {:0.4f} loss: {:0.8f}  ".format((m/len(list_inds))*100,loss.item()))
-            ll = ll + loss.item()
-            m = m+1
+        if iteration%config["test_model_cycel"]==0:
+            model     = model.to(device=device, dtype=torch.float)
+            model.eval()
+            
+            train_features,train_labels = forward_all_images(model,l_train)
+            test_features,test_labels   = forward_all_images(model,test)
+            
+            mean_dir                    = mean_dicrections(train_features,train_labels)
+            
+            _,train_acc_1  = prediction(train_features,train_labels,mean_dir)
+            _,test_acc_1   = prediction(test_features,test_labels,mean_dir)
+            
+            train_acc.append(train_acc_1)
+            test_acc.append(test_acc_1)
+            
+            print("######################################################################################################################")
+            print("   #####  Cosine: Train Epoch: {} train_acc: {:0.4f} test_acc: {:0.4f} #####".format(iteration,train_acc_1,test_acc_1))
+            print("######################################################################################################################")
+            
+            train_acc.append(train_acc_1)
+            test_acc.append(test_acc_1)
+            
+            model.train()
+            if test_acc_1>best_acc:
+                best_acc = test_acc_1
+                torch.save(model,'models/model.pth')
+            
         
-        '''######################################################## Forwad the data  ########################################################################'''
-        train_features = forward_all_images(model,device,images_train)
-        test_features  = forward_all_images(model,device,images_test)
         
-        '''##################################################### Update mean directions ###################################################################'''
-        mean_dir,_,_       = mean_dicrections(train_features,labels_train)
-        
-        '''##################################################### testing with cosine ########################################################################'''
-        _,train_acc_1  = prediction(train_features,labels_train,mean_dir)
-        _,test_acc_1   = prediction(test_features,labels_test,mean_dir)
-        
-        '''##################################################### testing with KNN ##########################################################################'''       
-# =============================================================================
-#         _,train_acc_2  = test_model(train_features, labels_train,train_features,labels_train)
-#         _,test_acc_2   = test_model(train_features, labels_train,test_features,labels_test)       
-# =============================================================================
        
-        '''###################################################################################################################################################'''
-        train_acc.append(train_acc_1)
-        test_acc.append(test_acc_1)
-        Loss_fn.append(ll)
-        
-        torch.save(model.state_dict(), r'models\model'+str(i)+'.pth')
-        #print("   #######################  Train Epoch: {} train_acc: {:0.4f} val_acc: {:0.4f} test_acc: {:0.4f} ###################       ".format(i,train_acc[-1],val_acc[-1],test_acc[-1]))
-        print("######################################################################################################################")
-        print("   #####  Cosine: Train Epoch: {} train_acc: {:0.4f} test_acc: {:0.4f} #####".format(i,train_acc_1,test_acc_1))
-        #print("   #####  KNN: Train Epoch: {} train_acc: {:0.4f} val_acc: {:0.4f} test_acc: {:0.4f}  #####".format(i,train_acc_2,val_acc_2,test_acc_2))
-        print("######################################################################################################################")
-              
-        
-    
-    train_acc = np.stack(train_acc)
-    test_acc  = np.stack(test_acc)
-    Loss_fn   = np.stack(Loss_fn)
-    
-    np.save(r'data1\train_acc',train_acc)
-    np.save(r'data1\test_acc',test_acc)
-    np.save(r'data1\Loss_fn',Loss_fn)
+    return train_acc,test_acc

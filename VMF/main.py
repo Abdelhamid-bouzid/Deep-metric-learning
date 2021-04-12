@@ -1,31 +1,29 @@
 import torch
 
+from load_data import load_data
+import transform
 import create_model
 from learning_function import learning_function
-from config import Facnet_config
+from config import config
+from ict import ICT
 
 
-##########################################################################################
-## ------------------ Import train/test data --------------##
-##########################################################################################
+#####################################################################################################
+######################################## load data ##################################################
+#####################################################################################################
+l_train = load_data("data", "l_train")
+test    = load_data("data", "test")
 
-#images_train, labels_train =
-#images_test, labels_test   = 
+#####################################################################################################
+################################## transformation  ##################################################
+#####################################################################################################
+transform_fn = transform.transform(*config["transform"])
 
 ##########################################################################################
 ## ------------------------------------- Creating the model-----------------------------##
 ##########################################################################################
-learning_rate       = Facnet_config['learning_rate']
-width               = Facnet_config['width']
+model     = create_model.WRN2(config['width'])
 
-model     = create_model.WRN2(width)
-device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model     = model.to(device=device, dtype=torch.float)
-model.eval()
 
-##########################################################################################
-## ---------------------------------- Creating the optimizer----------------------------##
-##########################################################################################
-optimizer     = torch.optim.Adam(model.parameters(),lr = learning_rate)
 
-learning_function(model,optimizer,device,images_train, labels_train,images_test,labels_test)
+train_acc,test_acc,u_acc = learning_function(model,l_train,test)

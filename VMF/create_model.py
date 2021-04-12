@@ -60,7 +60,7 @@ class residual(nn.Module):
    
 class WRN2(nn.Module):
     """ WRN28-width with leaky relu (negative slope is 0.1)"""
-    def __init__(self,width):
+    def __init__(self,width, transform_fn=None):
         super().__init__()
         self.init_conv = conv3x3(3, 16)
 
@@ -77,10 +77,24 @@ class WRN2(nn.Module):
         
         self.unit4 = nn.Sequential(*[BatchNorm2d(filters[3]), relu(), nn.AdaptiveAvgPool2d(1)])
         #self.unit4 = nn.Sequential(*[relu(), nn.AdaptiveAvgPool2d(1)])
-        self.dropout1 = torch.nn.Dropout(0.5)
+        
+        #initialize_weights(self)
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")    
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.constant_(m.bias, 0)
+
+        self.transform_fn = transform_fn
 
 
     def forward(self, x):
+        if self.training and self.transform_fn is not None:
+            x = self.transform_fn(x)
         
         x = self.init_conv(x)
         x = self.unit1(x)
@@ -92,8 +106,12 @@ class WRN2(nn.Module):
         else:
             x = torch.squeeze(x)
             x = torch.unsqueeze(x, 0)
-        #x = self.dropout1(x)
         x = F.normalize(x, p=2, dim=1)
         
         return x
+    
+    def update_batch_stats(self, flag):
+        for m in self.modules():
+            if isinstance(m, nn.BatchNorm2d):
+                m.update_batch_stats = flag
     

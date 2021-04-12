@@ -1,28 +1,25 @@
-import torch 
 import numpy as np
-from config import Facnet_config
+import torch 
+from config import config
+from torch.utils.data import DataLoader
 
-def forward_all_images(model,device,all_img):
-    batch_size          = Facnet_config['batch_size']
+def forward_all_images(S_model,data):
     
-    device      = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    all_img     = torch.from_numpy(all_img)
-
+    device        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    data_loader   = DataLoader(data, config["batch_size"],drop_last=False)
+    
+    S_model.eval()
+    
     all_features  = []
-    for i in range(0,all_img.shape[0],batch_size):
-        if i+batch_size == all_img.shape[0]-1 or i+batch_size > all_img.shape[0]-1:
-            s         = i
-            data      = all_img[s:].to(device=device, dtype=torch.float)
-            features1 = model(data)
-        else:
-            s = i
-            e = s + batch_size
-            
-            data      = all_img[s:e].to(device=device, dtype=torch.float)
-            features1 = model(data)
-            
-        all_features.append(features1.cpu().detach().numpy())
-    
-    all_features = np.concatenate(all_features,axis=0)
+    all_labels    = []
+    for images, target in data_loader:
+        images, target = images.to(device).float(), target
         
-    return all_features
+        outputs = S_model(images)
+        all_features.append(outputs.cpu().detach().numpy())
+        all_labels.append(target.numpy())
+    all_features = np.concatenate(all_features,axis=0)
+    all_labels = np.concatenate(all_labels,axis=0)
+    
+        
+    return all_features, all_labels
