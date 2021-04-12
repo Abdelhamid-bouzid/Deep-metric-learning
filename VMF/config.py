@@ -11,13 +11,6 @@ config = {
     
     "transform"      : [True, True, True], # flip, rnd crop, gaussian noise
     
-    "ema_factor"     : 0.95,
-    "consis_coef"    : 100,
-    "alpha"          : 0.1,
-    
-    "warmup"         : 20000,
-    "topk"           : 8,
-    
     "test_model_cycel" :1500,
     
     "mean_dir_cycle"   : 1500,
