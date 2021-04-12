@@ -90,7 +90,7 @@ def learning_function(model,l_train,test):
             test_acc.append(test_acc_1)
             
             print("######################################################################################################################")
-            print("   #####  Cosine: Train Epoch: {} train_acc: {:0.4f} test_acc: {:0.4f} #####".format(iteration,train_acc_1,test_acc_1))
+            print("   #####  Cosine: Train iteration: {} train_acc: {:0.4f} test_acc: {:0.4f} #####".format(iteration,train_acc_1,test_acc_1))
             print("######################################################################################################################")
             
             train_acc.append(train_acc_1)
