@@ -14,9 +14,7 @@ class loss_function(Function):
     def forward(self, output, labels, mean_dir,device):
         
         mat1 = torch.exp(torch.mm(output,mean_dir)*self.Con)
-        mat2 = torch.zeros(mat1.shape[0]).to(device)
-        for i in range(mat1.shape[0]):
-            mat2[i] = mat1[i,labels.type(torch.long)[i]]
+        mat2 = torch.gather(mat1, 1, labels.unsqueeze(-1)).squeeze()
         
         mat3 = -torch.log(mat2/torch.sum(mat1,1))
         
